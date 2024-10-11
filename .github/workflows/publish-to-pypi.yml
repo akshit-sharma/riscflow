@@ -43,7 +43,7 @@ jobs:
       run: |
         found_free_version=false
         while [[ "$found_free_version" == "false" ]]; do
-          TAG_NAME=v$(python -c "import mylibrary.version as v; print(v.__version__)")
+          TAG_NAME=v$(python -c "import riscflow.version as v; print(v.__version__)")
           echo "Checking for tag: $TAG_NAME"
           if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
             echo "Tag $TAG_NAME already exists, bumping version."
