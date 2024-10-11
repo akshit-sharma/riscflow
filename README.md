@@ -8,5 +8,3 @@ This library provides tools for analyzing control flow graph of RISC-V assembly
 pip install .
 ```
 
-
-# Temporary change for testing
