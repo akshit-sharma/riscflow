@@ -21,18 +21,33 @@ jobs:
         python-version: '3.x'
 
     - name: Install dependencies
-      run: pip install setuptools wheel twine bump2version
+      run: pip install build twine bump2version
 
     - name: Bump version and tag
-      id: version
+      id: bump_version
       run: |
-        # Bump the version and create a new tag
-        bump2version patch --allow-dirty
-        git push --tags
+        # Bump the version, create a new tag, and update the repository
+        bump2version patch --allow-dirty --list
+        git push origin --tags
+        echo "Version bumped to ${{ steps.bump_version.outputs.new_version }}"
 
-    - name: Build the package
+    - name: Build the package using `build`
       run: |
-        python setup.py sdist bdist_wheel
+        python -m build
+
+    - name: Create a release folder
+      run: |
+        mkdir -p release
+        cp dist/* release/
+        echo "Release folder created with distribution files"
+
+    - name: Commit and push release folder
+      run: |
+        git config --global user.email "github-actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git add release
+        git commit -m "Add release files for version $(python -c 'import mylibrary.version as v; print(v.__version__)')"
+        git push origin main
 
     - name: Publish to PyPI
       run: |
