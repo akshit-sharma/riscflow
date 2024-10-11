@@ -1,4 +1,4 @@
-name: Publish Python Package and Create GitHub Release
+name: Publish Package and Release
 
 on:
   push:
@@ -38,10 +38,26 @@ jobs:
         fi
       shell: bash
 
+    - name: Find next available tag
+      id: find_tag
+      run: |
+        found_free_version=false
+        while [[ "$found_free_version" == "false" ]]; do
+          TAG_NAME=v$(python -c "import mylibrary.version as v; print(v.__version__)")
+          echo "Checking for tag: $TAG_NAME"
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag $TAG_NAME already exists, bumping version."
+            bump2version ${{ env.version_type }} --allow-dirty --list
+            git commit -m "Bump version"
+          else
+            echo "Tag $TAG_NAME is free."
+            found_free_version=true
+          fi
+        done
+
     - name: Bump version, create tag, and push to GitHub
       id: bump_version
       run: |
-        bump2version ${{ env.version_type }} --allow-dirty --list
         git push origin --tags
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
