@@ -3,9 +3,9 @@ name: Publish Python Package
 on:
   push:
     branches:
-      - main  # Change to the branch you want to trigger releases on
+      - main
     tags:
-      - 'v*'  # Trigger the workflow when a new version tag is pushed
+      - 'v*'
 
 jobs:
   build:
@@ -21,24 +21,13 @@ jobs:
         python-version: '3.x'
 
     - name: Install dependencies
-      run: pip install setuptools wheel twine
+      run: pip install setuptools wheel twine bump2version
 
     - name: Bump version and tag
       id: version
       run: |
-        # Get the current version from version.py
-        current_version=$(python -c "import mylibrary.version as v; print(v.__version__)")
-
-        # Use the `bumpversion` tool to increment the version (patch level by default)
-        new_version=$(bump2version --current-version $current_version patch --allow-dirty --dry-run --list | grep new_version= | sed -r s,"^.*=",,)
-
-        echo "new_version=$new_version" >> $GITHUB_ENV
-        echo "Current version is $current_version. Bumping to $new_version."
-
-        # Commit and tag the new version
-        git config --local user.email "github-actions@github.com"
-        git config --local user.name "GitHub Actions"
-        bump2version --current-version $current_version patch --allow-dirty
+        # Bump the version and create a new tag
+        bump2version patch --allow-dirty
         git push --tags
 
     - name: Build the package
