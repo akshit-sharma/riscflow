@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - 'v*'
 
 jobs:
   build:
@@ -23,13 +21,24 @@ jobs:
     - name: Install dependencies
       run: pip install build twine bump2version
 
-    - name: Bump version and tag
+    - name: Determine Version Type
+      id: version_type
+      run: |
+        if [[ "${{ github.event.head_commit.message }}" =~ "[major]" ]]; then
+          echo "version_type=major" >> $GITHUB_ENV
+        elif [[ "${{ github.event.head_commit.message }}" =~ "[minor]" ]]; then
+          echo "version_type=minor" >> $GITHUB_ENV
+        else
+          echo "version_type=patch" >> $GITHUB_ENV
+      shell: bash
+
+    - name: Bump version, create tag, and push to GitHub
       id: bump_version
       run: |
-        # Bump the version, create a new tag, and push it to GitHub
-        bump2version patch --allow-dirty --list
+        bump2version ${{ env.version_type }} --allow-dirty --list
         git push origin --tags
-        echo "Version bumped to ${{ steps.bump_version.outputs.new_version }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build the package using `build`
       run: |
@@ -46,11 +55,11 @@ jobs:
       id: create_release
       uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This is automatically provided by GitHub Actions
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: v${{ steps.bump_version.outputs.new_version }}  # Tag with the bumped version
         release_name: Release ${{ steps.bump_version.outputs.new_version }}  # Release name
-        draft: false  # Set to true if you want to manually publish it later
+        draft: false
         prerelease: false
 
     - name: Upload Assets to GitHub Release
@@ -58,9 +67,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}  # Use the upload URL from the created release
-        asset_path: dist/*.tar.gz  # Path to the .tar.gz file
-        asset_name: mylibrary-${{ steps.bump_version.outputs.new_version }}.tar.gz  # Name of the asset
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: dist/*.tar.gz
+        asset_name: mylibrary-${{ steps.bump_version.outputs.new_version }}.tar.gz
         asset_content_type: application/gzip
 
     - name: Upload Wheel to GitHub Release
@@ -68,7 +77,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}  # Use the upload URL from the created release
-        asset_path: dist/*.whl  # Path to the .whl file
-        asset_name: mylibrary-${{ steps.bump_version.outputs.new_version }}.whl  # Name of the asset
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: dist/*.whl
+        asset_name: mylibrary-${{ steps.bump_version.outputs.new_version }}.whl
         asset_content_type: application/octet-stream
