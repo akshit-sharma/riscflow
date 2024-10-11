@@ -1,4 +1,4 @@
-name: Publish Python Package
+name: Publish Python Package and Create GitHub Release
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
     - name: Bump version and tag
       id: bump_version
       run: |
-        # Bump the version, create a new tag, and update the repository
+        # Bump the version, create a new tag, and push it to GitHub
         bump2version patch --allow-dirty --list
         git push origin --tags
         echo "Version bumped to ${{ steps.bump_version.outputs.new_version }}"
@@ -35,23 +35,40 @@ jobs:
       run: |
         python -m build
 
-    - name: Create a release folder
-      run: |
-        mkdir -p release
-        cp dist/* release/
-        echo "Release folder created with distribution files"
-
-    - name: Commit and push release folder
-      run: |
-        git config --global user.email "github-actions@github.com"
-        git config --global user.name "GitHub Actions"
-        git add release
-        git commit -m "Add release files for version $(python -c 'import mylibrary.version as v; print(v.__version__)')"
-        git push origin main
-
     - name: Publish to PyPI
       run: |
         twine upload dist/*
       env:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # This is automatically provided by GitHub Actions
+      with:
+        tag_name: v${{ steps.bump_version.outputs.new_version }}  # Tag with the bumped version
+        release_name: Release ${{ steps.bump_version.outputs.new_version }}  # Release name
+        draft: false  # Set to true if you want to manually publish it later
+        prerelease: false
+
+    - name: Upload Assets to GitHub Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  # Use the upload URL from the created release
+        asset_path: dist/*.tar.gz  # Path to the .tar.gz file
+        asset_name: mylibrary-${{ steps.bump_version.outputs.new_version }}.tar.gz  # Name of the asset
+        asset_content_type: application/gzip
+
+    - name: Upload Wheel to GitHub Release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}  # Use the upload URL from the created release
+        asset_path: dist/*.whl  # Path to the .whl file
+        asset_name: mylibrary-${{ steps.bump_version.outputs.new_version }}.whl  # Name of the asset
+        asset_content_type: application/octet-stream
