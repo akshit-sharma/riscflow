@@ -1,0 +1,53 @@
+name: Publish Python Package
+
+on:
+  push:
+    branches:
+      - main  # Change to the branch you want to trigger releases on
+    tags:
+      - 'v*'  # Trigger the workflow when a new version tag is pushed
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: pip install setuptools wheel twine
+
+    - name: Bump version and tag
+      id: version
+      run: |
+        # Get the current version from version.py
+        current_version=$(python -c "import mylibrary.version as v; print(v.__version__)")
+
+        # Use the `bumpversion` tool to increment the version (patch level by default)
+        new_version=$(bump2version --current-version $current_version patch --allow-dirty --dry-run --list | grep new_version= | sed -r s,"^.*=",,)
+
+        echo "new_version=$new_version" >> $GITHUB_ENV
+        echo "Current version is $current_version. Bumping to $new_version."
+
+        # Commit and tag the new version
+        git config --local user.email "github-actions@github.com"
+        git config --local user.name "GitHub Actions"
+        bump2version --current-version $current_version patch --allow-dirty
+        git push --tags
+
+    - name: Build the package
+      run: |
+        python setup.py sdist bdist_wheel
+
+    - name: Publish to PyPI
+      run: |
+        twine upload dist/*
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
