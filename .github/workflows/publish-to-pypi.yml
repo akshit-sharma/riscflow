@@ -21,6 +21,11 @@ jobs:
     - name: Install dependencies
       run: pip install build twine bump2version
 
+    - name: Configure Git user
+      run: |
+        git config --global user.email "github-actions@github.com"
+        git config --global user.name "GitHub Actions"
+
     - name: Determine Version Type
       id: version_type
       run: |
