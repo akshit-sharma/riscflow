@@ -88,17 +88,6 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.bump_version.outputs.new_version }}  # Tag with the bumped version
-          release_name: Release ${{ steps.bump_version.outputs.new_version }}  # Release name
-          draft: false
-          prerelease: false
-
       - name: Upload Source Distribution to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
