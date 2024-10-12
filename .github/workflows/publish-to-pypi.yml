@@ -50,9 +50,14 @@ jobs:
           NEW_VERSION=$(grep -oP '(?<=new_version=)\S+' version_output.txt)
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
 
-          # Commit the version bump and push the changes to the main branch
-          git commit -am "Bump version to $NEW_VERSION"
-          git push origin main
+          # Check if there are changes to commit
+          if [[ -n $(git status --porcelain) ]]; then
+            # There are changes to commit
+            git commit -am "Bump version to $NEW_VERSION"
+            git push origin main
+          else
+            echo "No changes to commit"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
