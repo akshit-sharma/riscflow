@@ -24,6 +24,11 @@ jobs:
         run: |
           pip install bump2version build twine
 
+      - name: Configure Git user
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
       - name: Determine Version Type
         id: version_type
         run: |
@@ -40,8 +45,13 @@ jobs:
         id: bump_version
         run: |
           bump2version ${{ env.version_type }} --allow-dirty --list | tee version_output.txt
+
+          # Extract the new version
           NEW_VERSION=$(grep -oP '(?<=new_version=)\S+' version_output.txt)
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+
+          # Commit the version bump and push the changes to the main branch
+          git commit -am "Bump version to $NEW_VERSION"
           git push origin main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -49,6 +59,13 @@ jobs:
       - name: Build the package
         run: |
           python -m build
+
+      - name: Publish to PyPI
+        run: |
+          twine upload dist/*
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
 
       - name: Prepare release artifacts
         run: |
