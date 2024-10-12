@@ -61,7 +61,6 @@ jobs:
           tag: v${{ env.new_version }}            # Tag with the new version
           name: Release v${{ env.new_version }}   # Release name with the new version
           artifacts: "release.tar.gz,dist/*.tar.gz,dist/*.whl"   # Specify the artifacts to upload
-          bodyFile: "body.md"                     # Optional: Use body.md for release notes if available
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push version tag to GitHub
