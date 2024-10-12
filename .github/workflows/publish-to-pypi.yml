@@ -1,4 +1,4 @@
-name: Publish Package and Release
+name: Release on Main
 
 on:
   push:
@@ -6,105 +6,67 @@ on:
       - main
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install build twine bump2version
-
-      - name: Configure Git user
         run: |
-          git config --global user.email "github-actions@github.com"
-          git config --global user.name "GitHub Actions"
+          pip install bump2version build twine
 
       - name: Determine Version Type
         id: version_type
         run: |
           if [[ "${{ github.event.head_commit.message }}" =~ "[major]" ]]; then
-          echo "version_type=major" >> $GITHUB_ENV
+            echo "version_type=major" >> $GITHUB_ENV
           elif [[ "${{ github.event.head_commit.message }}" =~ "[minor]" ]]; then
-          echo "version_type=minor" >> $GITHUB_ENV
+            echo "version_type=minor" >> $GITHUB_ENV
           else
-          echo "version_type=patch" >> $GITHUB_ENV
+            echo "version_type=patch" >> $GITHUB_ENV
           fi
         shell: bash
 
-      - name: Find next available tag and bump version
+      - name: Bump version
         id: bump_version
         run: |
-          TAG_NAME=v$(python -c "import riscvflow.version as v; print(v.__version__)")
-          echo "Checking for tag: $TAG_NAME"
-
-          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-          echo "Tag $TAG_NAME already exists, bumping version."
           bump2version ${{ env.version_type }} --allow-dirty --list | tee version_output.txt
           NEW_VERSION=$(grep -oP '(?<=new_version=)\S+' version_output.txt)
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
-          else
-          echo "Tag $TAG_NAME is free. No need to bump."
-          NEW_VERSION=$(python -c "import riscvflow.version as v; print(v.__version__)")
-          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
-          fi
-
-          git commit -am "Bump version to $NEW_VERSION" || echo "No changes to commit"
-          git tag v$NEW_VERSION
-
-      - name: Push tags and changes to GitHub
-        run: |
-          git push origin --tags
           git push origin main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build the package using `build`
+      - name: Build the package
         run: |
           python -m build
 
-      - name: Publish to PyPI
+      - name: Prepare release artifacts
         run: |
-          twine upload dist/*
-        env:
-          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+          # Create a tarball with build artifacts
+          tar -czvf release.tar.gz dist/*.tar.gz dist/*.whl
 
+      - name: Create a Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ env.new_version }}            # Tag with the new version
+          name: Release v${{ env.new_version }}   # Release name with the new version
+          artifacts: "release.tar.gz,dist/*.tar.gz,dist/*.whl"   # Specify the artifacts to upload
+          bodyFile: "body.md"                     # Optional: Use body.md for release notes if available
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create GitHub Release
-        id: create_release
-        uses: actions/create-release@v1
+      - name: Push version tag to GitHub
+        run: |
+          git tag v${{ env.new_version }}
+          git push origin v${{ env.new_version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ env.new_version }}
-          release_name: Release ${{ env.new_version }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Source Distribution to GitHub Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/*.tar.gz
-          asset_name: riscvflow-${{ env.new_version }}.tar.gz
-          asset_content_type: application/gzip
-
-      - name: Upload Wheel to GitHub Release
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/*.whl
-          asset_name: riscvflow-${{ env.new_version }}.whl
-          asset_content_type: application/octet-stream
-
