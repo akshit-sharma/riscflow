@@ -38,27 +38,30 @@ jobs:
         fi
       shell: bash
 
-    - name: Find next available tag
-      id: find_tag
-      run: |
-        found_free_version=false
-        while [[ "$found_free_version" == "false" ]]; do
-          TAG_NAME=v$(python -c "import riscvflow.version as v; print(v.__version__)")
-          echo "Checking for tag: $TAG_NAME"
-          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Tag $TAG_NAME already exists, bumping version."
-            bump2version ${{ env.version_type }} --allow-dirty --list
-            git commit -m "Bump version"
-          else
-            echo "Tag $TAG_NAME is free."
-            found_free_version=true
-          fi
-        done
-
-    - name: Bump version, create tag, and push to GitHub
+    - name: Find next available tag and bump version
       id: bump_version
       run: |
+        TAG_NAME=v$(python -c "import riscvflow.version as v; print(v.__version__)")
+        echo "Checking for tag: $TAG_NAME"
+
+        if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+          echo "Tag $TAG_NAME already exists, bumping version."
+          bump2version ${{ env.version_type }} --allow-dirty --list | tee version_output.txt
+          NEW_VERSION=$(grep -oP '(?<=new_version=)\S+' version_output.txt)
+          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+        else
+          echo "Tag $TAG_NAME is free. No need to bump."
+          NEW_VERSION=$(python -c "import riscvflow.version as v; print(v.__version__)")
+          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
+        fi
+
+        git commit -am "Bump version to $NEW_VERSION" || echo "No changes to commit"
+        git tag v$NEW_VERSION
+
+    - name: Push tags and changes to GitHub
+      run: |
         git push origin --tags
+        git push origin main
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -73,6 +76,18 @@ jobs:
         TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
         TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
 
+
+    - name: Create GitHub Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ env.new_version }}
+        release_name: Release ${{ env.new_version }}
+        draft: false
+        prerelease: false
+
     - name: Create GitHub Release
       id: create_release
       uses: actions/create-release@v1
@@ -84,14 +99,14 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Assets to GitHub Release
+    - name: Upload Source Distribution to GitHub Release
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: dist/*.tar.gz
-        asset_name: riscvflow-${{ steps.bump_version.outputs.new_version }}.tar.gz
+        asset_name: riscvflow-${{ env.new_version }}.tar.gz
         asset_content_type: application/gzip
 
     - name: Upload Wheel to GitHub Release
@@ -101,5 +116,6 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: dist/*.whl
-        asset_name: riscvflow-${{ steps.bump_version.outputs.new_version }}.whl
+        asset_name: riscvflow-${{ env.new_version }}.whl
         asset_content_type: application/octet-stream
+
