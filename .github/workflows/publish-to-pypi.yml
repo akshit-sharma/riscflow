@@ -10,112 +10,112 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: pip install build twine bump2version
+      - name: Install dependencies
+        run: pip install build twine bump2version
 
-    - name: Configure Git user
-      run: |
-        git config --global user.email "github-actions@github.com"
-        git config --global user.name "GitHub Actions"
+      - name: Configure Git user
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
 
-    - name: Determine Version Type
-      id: version_type
-      run: |
-        if [[ "${{ github.event.head_commit.message }}" =~ "[major]" ]]; then
+      - name: Determine Version Type
+        id: version_type
+        run: |
+          if [[ "${{ github.event.head_commit.message }}" =~ "[major]" ]]; then
           echo "version_type=major" >> $GITHUB_ENV
-        elif [[ "${{ github.event.head_commit.message }}" =~ "[minor]" ]]; then
+          elif [[ "${{ github.event.head_commit.message }}" =~ "[minor]" ]]; then
           echo "version_type=minor" >> $GITHUB_ENV
-        else
+          else
           echo "version_type=patch" >> $GITHUB_ENV
-        fi
-      shell: bash
+          fi
+        shell: bash
 
-    - name: Find next available tag and bump version
-      id: bump_version
-      run: |
-        TAG_NAME=v$(python -c "import riscvflow.version as v; print(v.__version__)")
-        echo "Checking for tag: $TAG_NAME"
+      - name: Find next available tag and bump version
+        id: bump_version
+        run: |
+          TAG_NAME=v$(python -c "import riscvflow.version as v; print(v.__version__)")
+          echo "Checking for tag: $TAG_NAME"
 
-        if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
           echo "Tag $TAG_NAME already exists, bumping version."
           bump2version ${{ env.version_type }} --allow-dirty --list | tee version_output.txt
           NEW_VERSION=$(grep -oP '(?<=new_version=)\S+' version_output.txt)
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
-        else
+          else
           echo "Tag $TAG_NAME is free. No need to bump."
           NEW_VERSION=$(python -c "import riscvflow.version as v; print(v.__version__)")
           echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
-        fi
+          fi
 
-        git commit -am "Bump version to $NEW_VERSION" || echo "No changes to commit"
-        git tag v$NEW_VERSION
+          git commit -am "Bump version to $NEW_VERSION" || echo "No changes to commit"
+          git tag v$NEW_VERSION
 
-    - name: Push tags and changes to GitHub
-      run: |
-        git push origin --tags
-        git push origin main
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push tags and changes to GitHub
+        run: |
+          git push origin --tags
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Build the package using `build`
-      run: |
-        python -m build
+      - name: Build the package using `build`
+        run: |
+          python -m build
 
-    - name: Publish to PyPI
-      run: |
-        twine upload dist/*
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      - name: Publish to PyPI
+        run: |
+          twine upload dist/*
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
 
 
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ env.new_version }}
-        release_name: Release ${{ env.new_version }}
-        draft: false
-        prerelease: false
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ env.new_version }}
+          release_name: Release ${{ env.new_version }}
+          draft: false
+          prerelease: false
 
-    - name: Create GitHub Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ steps.bump_version.outputs.new_version }}  # Tag with the bumped version
-        release_name: Release ${{ steps.bump_version.outputs.new_version }}  # Release name
-        draft: false
-        prerelease: false
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ steps.bump_version.outputs.new_version }}  # Tag with the bumped version
+          release_name: Release ${{ steps.bump_version.outputs.new_version }}  # Release name
+          draft: false
+          prerelease: false
 
-    - name: Upload Source Distribution to GitHub Release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/*.tar.gz
-        asset_name: riscvflow-${{ env.new_version }}.tar.gz
-        asset_content_type: application/gzip
+      - name: Upload Source Distribution to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/*.tar.gz
+          asset_name: riscvflow-${{ env.new_version }}.tar.gz
+          asset_content_type: application/gzip
 
-    - name: Upload Wheel to GitHub Release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/*.whl
-        asset_name: riscvflow-${{ env.new_version }}.whl
-        asset_content_type: application/octet-stream
+      - name: Upload Wheel to GitHub Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/*.whl
+          asset_name: riscvflow-${{ env.new_version }}.whl
+          asset_content_type: application/octet-stream
 
