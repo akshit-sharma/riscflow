@@ -54,8 +54,8 @@ jobs:
         if: steps.bump_version.outputs.bumped == 'true'
         run: |
           echo "Version was bumped from ${{ steps.bump_version.outputs.previous-version }} to ${{ steps.bump_version.outputs.current-version }}!"
-          git status
-          ls
+          git commit -am "Bumping version from ${{ steps.bump_version.outputs.previous-version }} to ${{ steps.bump_version.outputs.current-version }}"
+          git push
 
       - name: Build the package
         run: |
