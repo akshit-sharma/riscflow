@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - '0.*'
+      - '1.*'
+      - '2.*'
 
 jobs:
   release:
@@ -79,7 +81,9 @@ jobs:
 
       - name: Push version tag to GitHub
         run: |
-          git push origin --tags
+          # Ensure the push goes to the branch (e.g., 0.x, 1.x)
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git push origin ${{ github.ref }} --tags
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
