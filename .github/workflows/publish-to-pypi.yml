@@ -55,7 +55,10 @@ jobs:
         run: |
           echo "Version was bumped from ${{ steps.bump_version.outputs.previous-version }} to ${{ steps.bump_version.outputs.current-version }}!"
           git commit -am "Bumping version from ${{ steps.bump_version.outputs.previous-version }} to ${{ steps.bump_version.outputs.current-version }}"
-          git push
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git push origin HEAD
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build the package
         run: |
