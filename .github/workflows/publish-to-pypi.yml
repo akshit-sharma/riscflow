@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install build twine
+          pip install build twine toml
 
       - name: Configure Git user
         run: |
