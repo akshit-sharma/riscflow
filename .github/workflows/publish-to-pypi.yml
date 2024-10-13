@@ -1,9 +1,9 @@
-name: Release on Main
+name: Version Bump in Major Branches
 
 on:
   push:
     branches:
-      - main
+      - '0.*'
 
 jobs:
   release:
@@ -79,7 +79,7 @@ jobs:
 
       - name: Push version tag to GitHub
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
           git push origin --tags
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
