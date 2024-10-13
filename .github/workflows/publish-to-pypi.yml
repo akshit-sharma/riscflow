@@ -79,6 +79,6 @@ jobs:
 
       - name: Push version tag to GitHub
         run: |
-          git push origin --tags
+          git push origin main --tags
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
