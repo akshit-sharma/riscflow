@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install bump2version build twine
+          pip install build twine
 
       - name: Configure Git user
         run: |
@@ -38,28 +38,19 @@ jobs:
             echo "version_type=minor" >> $GITHUB_ENV
           else
             echo "version_type=patch" >> $GITHUB_ENV
-          fi
         shell: bash
 
       - name: Bump version
         id: bump_version
+        uses: callowayproject/bump-my-version@master
+        with:
+          args: ${{ env.version_type }}  # Use the version type (major, minor, patch)
+          github-token: ${{ secrets.GITHUB_TOKEN }}  # Token to commit the version bump
+
+      - name: Check if version was bumped
+        if: steps.bump_version.outputs.bumped == 'true'
         run: |
-          bump2version ${{ env.version_type }} --allow-dirty --list | tee version_output.txt
-
-          # Extract the new version
-          NEW_VERSION=$(grep -oP '(?<=new_version=)\S+' version_output.txt)
-          echo "new_version=$NEW_VERSION" >> $GITHUB_ENV
-
-          # Check if there are changes to commit
-          if [[ -n $(git status --porcelain) ]]; then
-            # There are changes to commit
-            git commit -am "Bump version to $NEW_VERSION"
-            git push origin main
-          else
-            echo "No changes to commit"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          echo "Version was bumped from ${{ steps.bump_version.outputs.previous-version }} to ${{ steps.bump_version.outputs.current-version }}!"
 
       - name: Build the package
         run: |
@@ -80,14 +71,13 @@ jobs:
       - name: Create a Release
         uses: ncipollo/release-action@v1
         with:
-          tag: v${{ env.new_version }}            # Tag with the new version
-          name: Release v${{ env.new_version }}   # Release name with the new version
+          tag: v${{ steps.bump_version.outputs.current-version }}            # Tag with the new version
+          name: Release v${{ steps.bump_version.outputs.current-version }}   # Release name with the new version
           artifacts: "release.tar.gz,dist/*.tar.gz,dist/*.whl"   # Specify the artifacts to upload
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push version tag to GitHub
         run: |
-          git tag v${{ env.new_version }}
-          git push origin v${{ env.new_version }}
+          git push origin --tags
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
