@@ -47,13 +47,15 @@ jobs:
         id: bump_version
         uses: callowayproject/bump-my-version@master
         with:
-          args: ${{ env.version_type }}  # Use the version type (major, minor, patch)
+          args: ${{ env.version_type }} --allow-dirty  # Use the version type (major, minor, patch)
           github-token: ${{ secrets.GITHUB_TOKEN }}  # Token to commit the version bump
 
       - name: Check if version was bumped
         if: steps.bump_version.outputs.bumped == 'true'
         run: |
           echo "Version was bumped from ${{ steps.bump_version.outputs.previous-version }} to ${{ steps.bump_version.outputs.current-version }}!"
+          git status
+          ls
 
       - name: Build the package
         run: |
