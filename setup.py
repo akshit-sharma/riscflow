@@ -18,7 +18,16 @@ setup(
     description='A library for control flow graph analysis of RISC-V assembly',
     author='Akshit Sharma',
     author_email='akshitsharma@mines.edu',
-    packaes=find_packages(),
+    packages=find_packages(),
     install_requires=[
+        'graphviz',
     ],
+    entry_points={
+        'console_scripts': [
+            'risvflow-print-functions=riscvflow.main.print_functions:main',
+            'riscvflow-generate-cfg=riscvflow.main.generate_cfg:main',
+            'riscvflow-register-usage=riscvflow.main.register_usage:main',
+            'riscvflow-graphviz-functions=riscvflow.main.graphviz_functions:main',
+        ],
+    },
 )
