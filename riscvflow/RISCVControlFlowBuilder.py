@@ -45,8 +45,8 @@ class RISCVControlFlowBuilder:
             if line.startswith('#') or not line:
                 continue  # Skip comments and empty lines
 
-            first_word = instruction_re.search(line)
-            if first_word and assembler_directives.search(first_word.group()):
+            first_word = line.split(' ')[0].strip()
+            if assembler_directives.search(first_word):
                 continue
 
             # Detect section changes between .data and .text
@@ -253,6 +253,7 @@ class RISCVControlFlowBuilder:
 
             # Regular instruction
             instr_node = InstructionNode(no + 1, line)
+            print(f"#{no + 1} {line}")
             self.current_block.add_ast_node(instr_node)
 
         set_numLines(no + 1)
