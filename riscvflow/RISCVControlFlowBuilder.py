@@ -247,7 +247,6 @@ class RISCVControlFlowBuilder:
 
             # Regular instruction
             instr_node = InstructionNode(no + 1, line)
-            print (f"#{no+1} : {line}", flush=True)
             self.current_block.add_ast_node(instr_node)
 
         set_numLines(no + 1)
