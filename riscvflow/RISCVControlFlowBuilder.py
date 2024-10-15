@@ -1,7 +1,7 @@
 import re
 from riscvflow.node import CFGNode, InstructionNode, MacroNode
 from riscvflow.cfg import ControlFlowGraph
-from riscvflow.utils import set_numLines
+from riscvflow.utils import set_numLines, build_trie
 from riscvflow.logger import logger
 
 
@@ -32,6 +32,11 @@ class RISCVControlFlowBuilder:
 
         before_macro_node = None
 
+        assembler_directives = build_trie(['.align', '.ascii', 'asciz', '.byte', '.double',
+                                        '.eqv', '.extern', '.file', '.float', '.global',
+                                        '.half', '.include', '.section', '.space', '.string',
+                                        '.word'])
+
         file = open(self.filepath, 'r')
 
         for no, line in enumerate(file):
@@ -40,7 +45,8 @@ class RISCVControlFlowBuilder:
             if line.startswith('#') or not line:
                 continue  # Skip comments and empty lines
 
-            if line.startswith('.global'):
+            first_word = instruction_re.search(line)
+            if first_word and assembler_directives.search(first_word.group()):
                 continue
 
             # Detect section changes between .data and .text
