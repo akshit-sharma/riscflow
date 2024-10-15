@@ -7,7 +7,8 @@ import os
 # Add the parent directory (where riscvflow is) to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from riscvflow import RISCVControlFlowBuilder, getFunctions, registerUsageInFunction, dfsFunction
+from riscvflow import RISCVControlFlowBuilder, getFunctions, registerUsage, dfsFunction
+
 
 
 def main():
@@ -34,7 +35,8 @@ def main():
 
         # Check and print register usage
         labels = [f.label for f in function_nodes]
-        registerUsageInFunction(cfg, labels)
+        registers = registerUsage(cfg, func_start.label)
+        print(f"Function {func} register usage: {registers}")
 
 
 if __name__ == '__main__':

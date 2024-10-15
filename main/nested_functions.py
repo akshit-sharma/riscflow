@@ -1,5 +1,3 @@
-# main/print_functions.py
-
 import argparse
 import sys
 import os
@@ -8,14 +6,13 @@ from pathlib import Path
 # Add the parent directory (where riscvflow is) to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from riscvflow import RISCVControlFlowBuilder, getFunctions, dfsFunction
+from riscvflow import RISCVControlFlowBuilder, getFunctions, dfsFunction, nestedFunctions
 
 
 def main():
     parser = argparse.ArgumentParser(description="Print functions from the RISCV assembly file.")
     parser.add_argument('filename', help="Path to the RISCV assembly file", type=Path)
     parser.add_argument('--start', default='[default]', help="Label to start function discovery from")
-    parser.add_argument('output_dir', help="Output directory for the functions", type=Path)
     args = parser.parse_args()
 
     builder = RISCVControlFlowBuilder(args.filename)
@@ -26,11 +23,16 @@ def main():
     functions = []
     getFunctions(cfg, args.start, functions)
 
+    print("Functions found in the file:", functions)
+
+    nested_functions = []
     for func in functions:
         func_start = cfg[func]
-        function_nodes = dfsFunction(cfg, func_start.label)
-        fileNoExt = args.output_dir / f"{args.filename.stem}_{func_start.label}"
-        cfg.save_svg(function_nodes, fileNoExt)
+        nested_funcs = nestedFunctions(cfg, func)
+        nested_funcs = list(set(nested_funcs) & set(functions))
+        print("Nested functions found in the file:", nested_funcs)
+        nested_functions.append(nested_funcs)
+        print(f"Function {func} has {len(nested_functions[-1])} nodes {nested_functions[-1]}")
 
 
 if __name__ == '__main__':
