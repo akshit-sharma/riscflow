@@ -13,7 +13,7 @@ def dfsVisited(cfg, start_label):
         visited.add(node)
         children = node.children
         succ = node.successors
-        print(f"{node.label} -> {[child.label for child in children]} | {[(s[0].label, s[1]) for s in succ]}")
+        #  print(f"{node.label} -> {[child.label for child in children]} | {[(s[0].label, s[1]) for s in succ]}")
         for child in node.children:
             stack.append(child)
     return visited
@@ -44,7 +44,7 @@ def getFunctions(cfg, start_label, function_list):
         if node in visited:
             continue
         visited.add(node)
-        print('Node:', node.label, node.is_function_start)
+        #  print('Node:', node.label, node.is_function_start)
         if node.is_function_start:
             function_list.append(node.label)
         for child in node.children:
@@ -163,7 +163,7 @@ def registerUsage(cfg, start_label):
         for ast_node in node.ast_nodes:
             instruction = ast_node.code.strip()
             registers = get_registers(instruction)
-            print(instruction, registers)
+            #  print(instruction, registers)
             if registers:
                 add_dependencies(registers)
         first = False

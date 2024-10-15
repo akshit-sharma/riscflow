@@ -2,6 +2,7 @@ import re
 from riscvflow.node import CFGNode, InstructionNode, MacroNode
 from riscvflow.cfg import ControlFlowGraph
 from riscvflow.utils import set_numLines
+from riscvflow.logger import logger
 
 
 class RISCVControlFlowBuilder:
@@ -14,6 +15,8 @@ class RISCVControlFlowBuilder:
         self.current_block = None  # Current block we are building
         self.current_function = None  # Current function node being built
         self.return_stack = []  # Stack to keep track of return addresses
+        logger.removeHandler(logger.handlers[0])
+
 
     def parse_and_build_cfg(self):
         # Regular expressions to match labels, instructions, branches, and ecall (program exit)
@@ -59,7 +62,7 @@ class RISCVControlFlowBuilder:
                 before_macro_node = self.current_block
                 self.in_macro = True
                 macro_name = macro_start_re.search(line).group(1)
-                print(f"Detected macro start: {macro_name} at line {no + 1}")
+                logger.info(f"Detected macro start: {macro_name} at line {no + 1}")
 
                 # Create a new MacroNode
                 macro_node = MacroNode(no + 1, macro_name)
@@ -73,14 +76,14 @@ class RISCVControlFlowBuilder:
                 if macro_end_re.search(line):
                     self.in_macro = False
                     self.current_block.set_end_line(no + 1)
-                    print(f"Detected macro end at line {no + 1}")
+                    logger.info(f"Detected macro end at line {no + 1}")
                     self.current_block = None  # Reset current block after the macro ends
                     self.current_block = before_macro_node  # Set current block to the block before the macro
                 else:
                     # Add AST nodes (instructions) to the macro block
                     instr_node = InstructionNode(no + 1, line)
                     self.current_block.add_ast_node(instr_node)
-                    print(f"Adding instruction to macro: {line} at line {no + 1}")
+                    logger.info(f"Adding instruction to macro: {line} at line {no + 1}")
                 continue
 
             # Detect labels
@@ -99,7 +102,7 @@ class RISCVControlFlowBuilder:
                     # Link the previous block to the new label block (fall-through)
                     if self.current_block:
                         self.cfg.add_edge(self.current_block, new_block)
-                        print(f"Edge created from {self.current_block.label} to {label}")
+                        logger.info(f"Edge created from {self.current_block.label} to {label}")
 
                     self.current_block = new_block  # Set current_block to new label block
                 continue
@@ -139,8 +142,8 @@ class RISCVControlFlowBuilder:
                     self.cfg[target_label] = target_block
                 #self.cfg.add_edge(self.current_block, target_block)  # Create edge from 'main' to 'valid'
                 self.current_block.add_successor(target_block, condition)
-                print(f'Adding branch edge from {self.current_block.label} to {target_block.label} with condition: {condition}')
-                print(f"Branch edge created from {self.current_block.label} to {target_label}")
+                logger.info(f'Adding branch edge from {self.current_block.label} to {target_block.label} with condition: {condition}')
+                logger.info(f"Branch edge created from {self.current_block.label} to {target_label}")
 
                 opposite_condition = f"not ({condition})"
                 if branch_instr == 'beq':
@@ -156,7 +159,7 @@ class RISCVControlFlowBuilder:
                 fall_through_block = CFGNode(label=f'[fallthrough(#{no+1})]')
                 self.cfg[fall_through_block.label] = fall_through_block
                 self.cfg.add_edge(self.current_block, fall_through_block, opposite_condition)
-                print(f"Fall-through edge created from {self.current_block.label} to fall-through block")
+                logger.info(f"Fall-through edge created from {self.current_block.label} to fall-through block")
 
                 self.current_block = fall_through_block  # Set the current block to the fall-through block
                 continue
@@ -175,7 +178,7 @@ class RISCVControlFlowBuilder:
                     target_block = CFGNode(label=target_label)
                     self.cfg[target_label] = target_block
                 self.cfg.add_edge(self.current_block, target_block)
-                print(f"Jump edge created from {self.current_block.label} to {target_label}")
+                logger.info(f"Jump edge created from {self.current_block.label} to {target_label}")
 
                 # Set current_block to None after the jump
                 self.current_block = None
@@ -201,7 +204,7 @@ class RISCVControlFlowBuilder:
                 if return_reg == 'ra':
                     target_block.is_function_start = True  # Mark the target block as a function
                 self.cfg.add_edge(self.current_block, target_block)
-                print(f"Function call edge created from {self.current_block.label} to {target_label}")
+                logger.info(f"Function call edge created from {self.current_block.label} to {target_label}")
 
                 # No need to set current block to None, as execution continues after the function call
                 continue
@@ -215,7 +218,7 @@ class RISCVControlFlowBuilder:
                 if self.return_stack:
                     return_block = self.return_stack.pop()
                     self.cfg.add_edge(self.current_block, return_block)
-                    print(f"Return edge created from {self.current_block.label} to return block {return_block.label}")
+                    logger.info(f"Return edge created from {self.current_block.label} to return block {return_block.label}")
 
                 # Set current_block to None after return to avoid further execution
                 self.current_block = None
@@ -234,7 +237,7 @@ class RISCVControlFlowBuilder:
 
                     # Mark the block as an exit block (no further edges should be added)
                     self.current_block.is_exit = True
-                    print(f"Exit block: {self.current_block.label}")
+                    logger.info(f"Exit block: {self.current_block.label}")
 
                 # No need to add any further edges after this block
                 self.current_block = None
