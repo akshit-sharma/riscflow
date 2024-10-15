@@ -15,7 +15,6 @@ class RISCVControlFlowBuilder:
         self.current_block = None  # Current block we are building
         self.current_function = None  # Current function node being built
         self.return_stack = []  # Stack to keep track of return addresses
-        logger.removeHandler(logger.handlers[0])
 
 
     def parse_and_build_cfg(self):
@@ -40,6 +39,9 @@ class RISCVControlFlowBuilder:
 
             if line.startswith('#') or not line:
                 continue  # Skip comments and empty lines
+
+            if line.startswith('.global'):
+                continue
 
             # Detect section changes between .data and .text
             if line.startswith('.data'):
@@ -245,6 +247,7 @@ class RISCVControlFlowBuilder:
 
             # Regular instruction
             instr_node = InstructionNode(no + 1, line)
+            print (f"#{no+1} : {line}", flush=True)
             self.current_block.add_ast_node(instr_node)
 
         set_numLines(no + 1)

@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 from riscvflow import RISCVControlFlowBuilder, dfsVisited, listMacros
+from riscvflow.logger import logger, console_handler
 
 
 def main():
@@ -21,6 +22,9 @@ def main():
     parser.add_argument('--start-label', help="The start label of the function (default: function_name)", type=str, default='[default]')
     parser.add_argument('--macros', help="Include macros in the CFG", action='store_true')
     args = parser.parse_args()
+
+    # Add the console handler to the logger
+    logger.addHandler(console_handler)
 
     # Build the control flow graph from the assembly file
     builder = RISCVControlFlowBuilder(args.filename)

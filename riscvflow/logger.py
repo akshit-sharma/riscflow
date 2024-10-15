@@ -16,6 +16,4 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 # Add the formatter to the console handler
 console_handler.setFormatter(formatter)
 
-# Add the console handler to the logger
-logger.addHandler(console_handler)
 
