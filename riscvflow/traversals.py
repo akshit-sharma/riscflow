@@ -69,10 +69,12 @@ def nestedFunctions(cfg, start_label):
             if isinstance(ast_node, InstructionNode):
                 match = function_regex.match(ast_node.code)
                 if match:
-                    possible_functions.append(match.group(1))
+                    called_function = match.group(1)
+                    possible_functions.append(called_function)
         first = False
         for child in node.children:
-            stack.append
+            if child not in visited:
+                stack.append(child)
 
     return possible_functions
 
