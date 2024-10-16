@@ -19,16 +19,16 @@ class RISCVControlFlowBuilder:
 
     def parse_and_build_cfg(self):
         # Regular expressions to match labels, instructions, branches, and ecall (program exit)
-        label_re = re.compile(r'(\w+):')
-        instruction_re = re.compile(r'\b\w+\b')
-        branch_re = re.compile(r'(beq|bne|blt|bge)\s+(\w+)\s*,?\s*(\w+)\s*,?\s*(\w+)')
-        jump_re = re.compile(r'j\s+(\w+)')  # Match unconditional jumps
-        jal_re = re.compile(r'jal\s+(\w+),\s*(\w+)')  # Match jal instructions
-        jalr_re = re.compile(r'jalr\s+\w+,\s*\w+,\s*\w+')  # Match jalr instructions
-        end_program_re = re.compile(r'addi\s+a7,\s+zero,\s+10')  # Exit program code
-        ecall_re = re.compile(r'ecall')
-        macro_start_re = re.compile(r'\.macro\s+(\w+)')
-        macro_end_re = re.compile(r'\.end_macro')
+        label_re = re.compile(r'^(\w+):')
+        instruction_re = re.compile(r'^\b\w+\b')
+        branch_re = re.compile(r'^(beq|bne|blt|bge)\s+(\w+)\s*,?\s*(\w+)\s*,?\s*(\w+)')
+        jump_re = re.compile(r'^j\s+(\w+)')  # Match unconditional jumps
+        jal_re = re.compile(r'^jal\s+(\w+),\s*(\w+)')  # Match jal instructions
+        jalr_re = re.compile(r'^jalr\s+\w+,\s*\w+,\s*\w+')  # Match jalr instructions
+        end_program_re = re.compile(r'^addi\s+a7,\s+zero,\s+10')  # Exit program code
+        ecall_re = re.compile(r'^ecall')
+        macro_start_re = re.compile(r'^\.macro\s+(\w+)')
+        macro_end_re = re.compile(r'^\.end_macro')
 
         before_macro_node = None
 
@@ -253,7 +253,7 @@ class RISCVControlFlowBuilder:
 
             # Regular instruction
             instr_node = InstructionNode(no + 1, line)
-#            print(f"#{no + 1} {line}")
+            #  print(f"#{no + 1} {line}")
             self.current_block.add_ast_node(instr_node)
 
         set_numLines(no + 1)
