@@ -1,6 +1,7 @@
 import re
-from riscvflow.node import CFGNode, InstructionNode
+from riscvflow.node import CFGNode, InstructionNode, MacroNode
 from riscvflow.registers import all_registers
+from collections import defaultdict
 
 
 def dfsVisited(cfg, start_label):
@@ -39,16 +40,37 @@ def dfsFunction(cfg, start_label):
 def getFunctions(cfg, start_label, function_list):
     visited = set()
     stack = [cfg[start_label]]
+    macros = cfg.macros()
+    macroInstructions = defaultdict(list)
+    for macro in macros:
+        macroInstructions[macro.label] = macro.ast_nodes
+    macro_call_regex = re.compile(r'\s*\w+\(')
+    function_regex = re.compile(r'\s*jal\s+ra\s*,\s*(\w+)')
     while stack:
         node = stack.pop()
         if node in visited:
             continue
         visited.add(node)
-        #  print('Node:', node.label, node.is_function_start)
-        if node.is_function_start:
+        if hasattr(node, 'ast_nodes'):
+            for ast_node in node.ast_nodes:
+                instruction = ast_node.code.strip()
+                stack.append(ast_node)
+        if isinstance(node, InstructionNode):
+            if macro_call_regex.match(node.code):
+                macro_name = node.code.split('(')[0].strip()
+                for macro_inst in macroInstructions[macro_name]:
+                    stack.append(macro_inst)
+                    function_bool = function_regex.match(macro_inst.code)
+                    if function_bool:
+                        function_name = function_regex.match(macro_inst.code).group(1)
+                        function_list.append(function_name)
+        if hasattr(node, 'is_function_start') and node.is_function_start:
             function_list.append(node.label)
-        for child in node.children:
-            stack.append(child)
+        if hasattr(node, 'children'):
+            for child in node.children:
+                stack.append(child)
+    # if function_list has duplicates, remove them
+    function_list = list(set(function_list))
     return visited
 
 
@@ -165,7 +187,6 @@ def registerUsage(cfg, start_label):
         for ast_node in node.ast_nodes:
             instruction = ast_node.code.strip()
             registers = get_registers(instruction)
-            #  print(instruction, registers)
             if registers:
                 add_dependencies(registers)
         first = False

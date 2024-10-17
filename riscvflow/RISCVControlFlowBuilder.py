@@ -15,6 +15,7 @@ class RISCVControlFlowBuilder:
         self.current_block = None  # Current block we are building
         self.current_function = None  # Current function node being built
         self.return_stack = []  # Stack to keep track of return addresses
+        self.macro_list = []
 
 
     def parse_and_build_cfg(self):
@@ -85,6 +86,7 @@ class RISCVControlFlowBuilder:
                     self.in_macro = False
                     self.current_block.set_end_line(no + 1)
                     logger.info(f"Detected macro end at line {no + 1}")
+                    self.cfg.append_macro(self.current_block)
                     self.current_block = None  # Reset current block after the macro ends
                     self.current_block = before_macro_node  # Set current block to the block before the macro
                 else:
@@ -92,6 +94,13 @@ class RISCVControlFlowBuilder:
                     instr_node = InstructionNode(no + 1, line)
                     self.current_block.add_ast_node(instr_node)
                     logger.info(f"Adding instruction to macro: {line} at line {no + 1}")
+                    jal_match = jal_re.search(line)
+                    if jal_match:
+                        return_reg = jal_match.group(1)  # e.g., ra
+                        target_label = jal_match.group(2)  # The target label (function)
+                        if return_reg == 'ra':
+                            if not self.cfg[target_label]:
+                                self.cfg[target_label] = CFGNode(label=target_label)
                 continue
 
             # Detect labels

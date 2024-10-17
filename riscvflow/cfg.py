@@ -8,6 +8,7 @@ class ControlFlowGraph:
         self.nodes = []  # List of CFGNodes
         self.label_map = {}  # Maps labels to CFGNodes for easy linking
         self.start_node = None  # Reference to the start node
+        self.macro_list = []
 
     def __setitem__(self, label, node):
         """Add a new node to the CFG using the [] operator."""
@@ -34,6 +35,12 @@ class ControlFlowGraph:
     def add_edge(self, from_node, to_node, condition=None):
         """Create a control flow edge between two nodes."""
         from_node.add_successor(to_node, condition)
+
+    def macros(self):
+        return self.macro_list
+
+    def append_macro(self, macro):
+        self.macro_list.append(macro)
 
     def to_graphviz(self, nodes):
         """Generate a Graphviz Digraph for the control flow graph."""
