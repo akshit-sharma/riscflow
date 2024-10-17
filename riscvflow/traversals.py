@@ -45,7 +45,9 @@ def getFunctions(cfg, start_label, function_list):
     for macro in macros:
         macroInstructions[macro.label] = macro.ast_nodes
     macro_call_regex = re.compile(r'\s*\w+\(')
+    macro_call_regex_2 = re.compile(r'\s*\w+\s')
     function_regex = re.compile(r'\s*jal\s+ra\s*,\s*(\w+)')
+    function_regex_2 = re.compile(r'\s*jal\s+ra\s+\s*(\w+)')
     while stack:
         node = stack.pop()
         if node in visited:
@@ -56,13 +58,19 @@ def getFunctions(cfg, start_label, function_list):
                 instruction = ast_node.code.strip()
                 stack.append(ast_node)
         if isinstance(node, InstructionNode):
-            if macro_call_regex.match(node.code):
+            if macro_call_regex.match(node.code) or macro_call_regex_2.match(node.code):
                 macro_name = node.code.split('(')[0].strip()
+                if ' ' in macro_name:
+                    macro_name = node.code.split(' ')[0].strip()
                 for macro_inst in macroInstructions[macro_name]:
                     stack.append(macro_inst)
                     function_bool = function_regex.match(macro_inst.code)
                     if function_bool:
                         function_name = function_regex.match(macro_inst.code).group(1)
+                        function_list.append(function_name)
+                    function_bool_2 = function_regex_2.match(macro_inst.code)
+                    if function_bool_2:
+                        function_name = function_regex_2.match(macro_inst.code).group(1)
                         function_list.append(function_name)
         if hasattr(node, 'is_function_start') and node.is_function_start:
             function_list.append(node.label)
@@ -80,6 +88,7 @@ def nestedFunctions(cfg, start_label):
     first = True
     possible_functions = []
     function_regex = re.compile(r'jal\s+ra\s*,\s*(\w+)')
+    function_regex_2 = re.compile(r'jal\s+ra\s+\s*(\w+)')
     while stack:
         node = stack.pop()
         if node in visited:
@@ -92,6 +101,10 @@ def nestedFunctions(cfg, start_label):
                 match = function_regex.match(ast_node.code)
                 if match:
                     called_function = match.group(1)
+                    possible_functions.append(called_function)
+                match_2 = function_regex_2.match(ast_node.code)
+                if match_2:
+                    called_function = match_2.group(1)
                     possible_functions.append(called_function)
         first = False
         for child in node.children:

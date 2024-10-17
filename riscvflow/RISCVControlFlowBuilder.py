@@ -29,6 +29,7 @@ class RISCVControlFlowBuilder:
         end_program_re = re.compile(r'^addi\s+a7,\s+zero,\s+10')  # Exit program code
         ecall_re = re.compile(r'^ecall')
         macro_start_re = re.compile(r'^\.macro\s+(\w+)')
+        macro_start_re2 = re.compile(r'^\.macro\s+\w+\s')
         macro_end_re = re.compile(r'^\.end_macro')
 
         before_macro_node = None
@@ -71,6 +72,8 @@ class RISCVControlFlowBuilder:
                 before_macro_node = self.current_block
                 self.in_macro = True
                 macro_name = macro_start_re.search(line).group(1)
+                if not macro_name:
+                    macro_name = macro_start_re2.search(line).group(1)
                 logger.info(f"Detected macro start: {macro_name} at line {no + 1}")
 
                 # Create a new MacroNode
